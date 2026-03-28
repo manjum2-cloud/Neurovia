@@ -858,8 +858,15 @@
         throw new Error('API error: ' + reason);
       }
       const raw = data.content.map(i => i.text || '').join('');
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
+      let parsed;
+      try {
+        const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+        parsed = JSON.parse(clean);
+      } catch(e) {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Could not parse AI response');
+        parsed = JSON.parse(match[0]);
+      }
 
       if (selectedMode === 'quiz') {
         questions = parsed.questions;
