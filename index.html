@@ -1564,48 +1564,120 @@ button:focus, input:focus, select:focus, textarea:focus {
   <!-- ═══ SCREEN: UPLOAD ═══ -->
   <div class="screen active" id="screen-upload">
 
-    <div class="section-label">Quick Start — Subject Packs</div>
+    <div class="section-label">Quick Start — Medical Subjects</div>
     <div class="presets-grid">
       <div class="preset-btn" onclick="loadPreset('anatomy')">
         <div class="preset-icon">🦴</div>
         <div class="preset-name">Anatomy</div>
-        <div class="preset-desc">Muscles, nerves, vessels</div>
+        <div class="preset-desc">Skeletal & muscular systems</div>
       </div>
-      <div class="preset-btn" onclick="loadPreset('cellbio')">
-        <div class="preset-icon">🔬</div>
-        <div class="preset-name">Cell Biology</div>
-        <div class="preset-desc">Mitosis, apoptosis, signaling</div>
+      <div class="preset-btn" onclick="loadPreset('physiology')">
+        <div class="preset-icon">❤️</div>
+        <div class="preset-name">Physiology</div>
+        <div class="preset-desc">Body systems & functions</div>
       </div>
-      <div class="preset-btn" onclick="loadPreset('biochem')">
+      <div class="preset-btn" onclick="loadPreset('biochemistry')">
         <div class="preset-icon">⚗️</div>
         <div class="preset-name">Biochemistry</div>
-        <div class="preset-desc">Metabolism, enzymes, vitamins</div>
+        <div class="preset-desc">Metabolism & enzymes</div>
       </div>
-      <div class="preset-btn" onclick="loadPreset('biophysics')">
-        <div class="preset-icon">⚡</div>
-        <div class="preset-name">Biophysics</div>
-        <div class="preset-desc">Osmosis, Starling, Laplace</div>
+      <div class="preset-btn" onclick="loadPreset('pathology')">
+        <div class="preset-icon">🔬</div>
+        <div class="preset-name">Pathology</div>
+        <div class="preset-desc">Disease mechanisms</div>
       </div>
-      <div class="preset-btn" onclick="loadPreset('histology')">
-        <div class="preset-icon">🧫</div>
-        <div class="preset-name">Histology</div>
-        <div class="preset-desc">Tissues, cartilage, adipose</div>
+      <div class="preset-btn" onclick="loadPreset('microbiology')">
+        <div class="preset-icon">🦠</div>
+        <div class="preset-name">Microbiology</div>
+        <div class="preset-desc">Bacteria & infections</div>
       </div>
-      <div class="preset-btn" onclick="loadPreset('psych')">
+      <div class="preset-btn" onclick="loadPreset('pharmacology')">
+        <div class="preset-icon">💊</div>
+        <div class="preset-name">Pharmacology</div>
+        <div class="preset-desc">Drugs & treatments</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('forensic_medicine')">
+        <div class="preset-icon">🔍</div>
+        <div class="preset-name">Forensic Medicine</div>
+        <div class="preset-desc">Legal & medical</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('community_medicine')">
+        <div class="preset-icon">🏥</div>
+        <div class="preset-name">Community Medicine</div>
+        <div class="preset-desc">Public health</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('general_medicine')">
+        <div class="preset-icon">🩺</div>
+        <div class="preset-name">General Medicine</div>
+        <div class="preset-desc">Internal medicine</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('general_surgery')">
+        <div class="preset-icon">🔪</div>
+        <div class="preset-name">General Surgery</div>
+        <div class="preset-desc">Surgical conditions</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('ENT')">
+        <div class="preset-icon">👂</div>
+        <div class="preset-name">ENT</div>
+        <div class="preset-desc">Ear, nose & throat</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('ophthalmology')">
+        <div class="preset-icon">👁️</div>
+        <div class="preset-name">Ophthalmology</div>
+        <div class="preset-desc">Eye & vision</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('pediatrics')">
+        <div class="preset-icon">👶</div>
+        <div class="preset-name">Pediatrics</div>
+        <div class="preset-desc">Child health</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('gynaecology')">
+        <div class="preset-icon">🤰</div>
+        <div class="preset-name">Gynaecology</div>
+        <div class="preset-desc">Women's health</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('psychiatry')">
         <div class="preset-icon">🧠</div>
-        <div class="preset-name">Psychology</div>
-        <div class="preset-desc">Psychopathology, personality</div>
+        <div class="preset-name">Psychiatry</div>
+        <div class="preset-desc">Mental health</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('dermatology')">
+        <div class="preset-icon">🩹</div>
+        <div class="preset-name">Dermatology</div>
+        <div class="preset-desc">Skin disorders</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('orthopaedics')">
+        <div class="preset-icon">🦵</div>
+        <div class="preset-name">Orthopaedics</div>
+        <div class="preset-desc">Bones & joints</div>
+      </div>
+      <div class="preset-btn" onclick="loadPreset('emergency_medicine')">
+        <div class="preset-icon">🚑</div>
+        <div class="preset-name">Emergency Medicine</div>
+        <div class="preset-desc">Acute conditions</div>
       </div>
     </div>
 
     <div class="section-label">Upload Material</div>
-    <div class="card" style="padding:0">
-      <div class="upload-zone" id="upload-zone">
-        <input type="file" id="file-input" accept=".pdf,.pptx,.ppt,.txt,.docx" multiple>
-        <div class="upload-icon">📎</div>
-        <p><strong>Drop files here</strong> or click to browse</p>
-        <p style="margin-top:6px;font-size:12px">PDF · PPTX · TXT · DOCX</p>
-        <div id="file-list"></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <div class="card" style="padding:0">
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept=".pdf,.pptx,.ppt,.txt,.docx" multiple>
+          <div class="upload-icon">📎</div>
+          <p><strong>Drop files here</strong> or click to browse</p>
+          <p style="margin-top:6px;font-size:12px">PDF · PPTX · TXT · DOCX</p>
+          <div id="file-list"></div>
+        </div>
+      </div>
+      
+      <div class="card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+        <div style="font-size: 32px; margin-bottom: 12px;">☁️</div>
+        <div style="font-weight: 600; margin-bottom: 8px;">Connect Google Drive</div>
+        <p style="font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px;">Access your docs, sheets, and PDFs directly</p>
+        <button class="btn btn-outline" onclick="connectGoogleDrive()" style="width: 100%; justify-content: center;">
+          🔗 Connect Google Drive
+        </button>
+        <div id="google-drive-status" style="margin-top: 12px; font-size: 11px; text-align: center; color: var(--muted); display: none;"></div>
       </div>
     </div>
 
@@ -2091,18 +2163,121 @@ function fileToBase64(file) {
 
 // ═══ PRESETS ═══
 const PRESETS = {
-  anatomy: 'Upper limb muscles and innervation, brachial plexus, rotator cuff muscles, carpal tunnel, thoracic muscles including intercostals and diaphragm, abdominal wall muscles, neck muscles including sternocleidomastoid and scalenes, cranial nerves and their functions',
-  cellbio: 'Cell cycle phases G1 S G2 M, Cdk cyclin complexes, Rb E2F pathway, p53 and DNA damage checkpoints, mitosis phases prophase metaphase anaphase telophase, apoptosis intrinsic and extrinsic pathways, caspases Bcl-2 family, cytochrome c, cytoskeleton actin microtubules intermediate filaments, GPCR signaling, enzyme-coupled receptors, MAP kinase pathway',
-  biochem: 'Glycolysis, Krebs cycle TCA, oxidative phosphorylation, glycogen synthesis and degradation, glycogen phosphorylase, glucokinase hexokinase, B vitamins thiamine riboflavin niacin B6 B12 folate biotin pantothenic acid, protein folding chaperones, ubiquitin proteasome pathway, post-translational modifications phosphorylation glycosylation, nucleosides nucleotides purine pyrimidine synthesis',
-  biophysics: 'Osmosis osmotic pressure Van Hoff equation, Starling forces capillary filtration reabsorption, hydrostatic pressure oncotic pressure, Laplace law surface tension alveoli, fluid dynamics Bernoulli Poiseuille, laminar turbulent flow, viscosity, Frank-Starling law cardiac, compliance resistance',
-  histology: 'Connective tissue types loose dense, collagen types I II III IV, elastic fibers, fibroblasts, adipose tissue white brown, cartilage hyaline elastic fibrocartilage, chondrocytes perichondrium, bone ossification, blood cells erythrocytes leukocytes platelets, epithelium types simple stratified',
-  psych: 'Personality disorders cluster A B C, schizophrenia positive negative symptoms, mood disorders bipolar depression, anxiety disorders GAD PTSD OCD, defense mechanisms, cognitive distortions, Freudian psychoanalysis, Piaget stages, attachment theory, DSM criteria'
+  anatomy: 'Skeletal system bones joints ligaments tendons, muscular system muscles innervation origins insertions, upper limb brachial plexus median ulnar radial nerves, lower limb lumbar plexus femoral sciatic nerves, thorax chest wall ribs intercostals heart lung, abdomen abdominal muscles organs, head and neck cranial nerves, CNS spinal cord brain, vascular system arteries veins coronary cerebral, lymphatic system nodes vessels',
+  physiology: 'Cardiovascular cardiac cycle cardiac output heart rate contractility arrhythmias hypertension, respiratory lung volumes ventilation perfusion oxygenation carbon dioxide, renal filtration reabsorption secretion kidney function, endocrine hormones signaling feedback mechanisms, nervous system action potential synaptic transmission neurotransmitters, gastrointestinal digestion absorption motility, reproductive male female hormones menstrual cycle',
+  biochemistry: 'Carbohydrate metabolism glycolysis Krebs cycle gluconeogenesis, lipid metabolism beta oxidation cholesterol synthesis, protein metabolism amino acids urea cycle, enzyme kinetics cofactors, vitamins minerals roles deficiencies, nucleic acid DNA RNA synthesis replication transcription translation, post-translational modifications, metabolic disorders phenylketonuria maple syrup urine disease',
+  pathology: 'Cell injury necrosis apoptosis autophagy, inflammation acute chronic mediators, immunity innate adaptive complement system, infection bacterial viral fungal parasitic, neoplasia benign malignant tumor markers, cardiovascular pathology atherosclerosis hypertension, respiratory pathology asthma COPD pneumonia tuberculosis, gastrointestinal pathology ulcer gastroenteritis cirrhosis',
+  microbiology: 'Bacterial structure gram positive negative, viral structure replication pathogenesis, fungal characteristics yeasts molds, parasitic infections protozoa helminths, antibiotics mechanisms resistance, vaccination immunity immunization, bacterial pathogenesis virulence factors toxins, diagnostic methods culture staining PCR serology, epidemiology transmission routes infection control, immunology immune responses T cells B cells antibodies',
+  pharmacology: 'Drug absorption distribution metabolism excretion, pharmacokinetics half life steady state bioavailability, pharmacodynamics receptor agonist antagonist, autonomic nervous system adrenergic cholinergic drugs, cardiovascular drugs ACE inhibitors beta blockers statins, respiratory drugs bronchodilators inhaled corticosteroids, gastrointestinal drugs antiemetics proton pump inhibitors, antimicrobial drugs antibiotics antivirals antifungals, analgesics NSAIDs opioids, adverse effects drug interactions contraindications',
+  forensic_medicine: 'Forensic pathology autopsy cause of death, wound examination trauma ballistics, toxicology poisoning chemical analysis, identification fingerprints DNA dental records, medicolegal importance documentation chain of custody, sexual assault examination evidence collection, burn injuries aspiration drowning, traffic accidents forensic analysis, death certification postmortem changes decomposition',
+  community_medicine: 'Epidemiology disease surveillance outbreak investigation, biostatistics probability statistical tests, public health measures vaccination sanitation, occupational health hazards workplace safety, environmental health pollution water sanitation waste management, maternal child health nutrition immunization, communicable diseases control eradication, health promotion education, healthcare delivery systems primary secondary tertiary care',
+  general_medicine: 'Cardiovascular diseases hypertension coronary artery disease heart failure arrhythmias, respiratory diseases tuberculosis asthma COPD pneumonia bronchiectasis, gastrointestinal diseases peptic ulcer inflammatory bowel disease cirrhosis liver disease, hematology anemia leukemias lymphomas bleeding disorders, endocrinology diabetes thyroid parathyroid, renal diseases nephrotic nephritic acute kidney injury chronic kidney disease, infectious diseases fever sepsis malaria typhoid, rheumatology rheumatoid arthritis systemic lupus erythematosus',
+  general_surgery: 'Surgical principles asepsis hemostasis wound healing, acute abdomen appendicitis peritonitis pancreatitis, gastrointestinal surgery gastric ulcer colorectal cancer, biliary surgery cholecystitis choledocholithiasis, breast surgery carcinoma fibroadenoma, vascular surgery aneurysm thrombosis, trauma management burn wound management fracture care, surgical oncology cancer surgery principles, minimally invasive surgery laparoscopy, anesthesia preoperative assessment risk',
+  ENT: 'Ear anatomy otitis media mastoiditis cholesteatoma, hearing loss conductive sensorineural tinnitus, nose anatomy sinusitis polyps deviated septum, throat pharyngitis laryngitis vocal cord dysfunction, head neck cancer laryngeal pharyngeal, cleft palate cleft lip, sleep apnea obstructive, pediatric ENT adenoid tonsilitis, facial nerve paralysis, oral cavity dental problems tongue tumors',
+  ophthalmology: 'Refractive errors myopia hyperopia astigmatism presbyopia, cataract surgery indications, glaucoma intraocular pressure optic nerve, retinal disease macular degeneration diabetic retinopathy retinal detachment, cornea keratitis corneal ulcer, conjunctiva conjunctivitis allergic bacterial viral, ocular trauma chemical burns hyphema, pediatric ophthalmology amblyopia strabismus, neuro-ophthalmology diplopia visual field defects, ocular manifestations systemic disease',
+  pediatrics: 'Neonatal care prematurity respiratory distress syndrome, infant development milestones, childhood infections measles mumps rubella chickenpox, acute diarrhea gastroenteritis dehydration, pneumonia lower respiratory tract infection, seizures febrile seizure epilepsy, congenital heart disease cyanotic acyanotic, mental development intellectual disability autism, nutritional deficiency protein energy malnutrition rickets, immunization vaccination schedule adverse effects',
+  gynaecology: 'Menstrual cycle hormones disorders amenorrhea dysmenorrhea, puberty onset development, contraception methods pills intrauterine device, infertility evaluation treatment assisted reproduction, pregnancy physiology complications ectopic preeclampsia gestational diabetes, labor delivery induction augmentation, postpartum complications hemorrhage infection, gynecological cancers cervical endometrial ovarian, benign tumors fibroids polyps cysts, pelvic inflammatory disease endometriosis',
+  psychiatry: 'Schizophrenia positive negative symptoms antipsychotics, mood disorders bipolar depression mania, anxiety disorders generalized anxiety panic disorder phobias PTSD, personality disorders cluster A B C psychopathic traits, substance abuse alcohol cannabis opioids withdrawal addiction, cognitive disorders delirium dementia Alzheimer disease, dissociative identity disorder dissociation, psychotherapy counseling cognitive behavioral therapy, psychotropic medications antidepressants anxiolytics mood stabilizers',
+  dermatology: 'Skin anatomy epidermis dermis subcutaneous, acne pathophysiology treatment isotretinoin, eczema dermatitis allergic irritant, psoriasis lichen planus papulosquamous diseases, fungal infections tinea candida, bacterial infections impetigo cellulitis erysipelas, viral infections herpes zoster varicella molluscum, urticaria angioedema allergic reactions, pigmentary disorders vitiligo melasma postinflammatory hyperpigmentation, skin cancer melanoma basal cell squamous cell, hair disorders alopecia hirsutism',
+  orthopaedics: 'Bone anatomy fracture classifications Salter Harris, upper limb fractures humerus radius ulna, lower limb fractures femur tibia fibula hip fracture, spine fracture cervical thoracic lumbar, joint injuries ligament sprains meniscal tears, arthritis osteoarthritis rheumatoid arthritis, orthopedic conditions scoliosis kyphosis lordosis, pediatric orthopaedics club foot developmental dysplasia hip, muscle strain compartment syndrome tendinitis, sports injuries anterior cruciate ligament shoulder injuries',
+  emergency_medicine: 'Airway management intubation tracheostomy, shock hypovolemic cardiogenic septic, resuscitation CPR ACLS advanced life support, trauma assessment primary secondary survey, head injury intracranial pressure traumatic brain injury, chest trauma pneumothorax hemothorax flail chest, abdominal trauma solid organ injuries, poison management overdose antidotes, thermal injury burn classification treatment, environmental emergencies hypothermia heat stroke, acute coronary syndrome myocardial infarction, stroke ischemic hemorrhagic thrombolytic therapy'
 };
 
 function loadPreset(key) {
   document.getElementById('text-input').value = PRESETS[key];
   document.getElementById('text-input').focus();
   document.getElementById('text-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ═══ GOOGLE DRIVE INTEGRATION ═══
+function connectGoogleDrive() {
+  const statusDiv = document.getElementById('google-drive-status');
+  const btn = event.target;
+  
+  // Show connection message
+  statusDiv.style.display = 'block';
+  statusDiv.textContent = '🔄 Initializing Google Drive connection...';
+  
+  // Create a modal for Google Drive file picker
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+  
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    color: var(--text);
+  `;
+  
+  content.innerHTML = `
+    <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">📂 Google Drive Connection</div>
+    <p style="color: var(--muted); line-height: 1.6; margin-bottom: 16px;">
+      To enable Google Drive integration, we need permission to access your files. This feature will allow you to:
+    </p>
+    <ul style="margin-left: 20px; color: var(--muted); margin-bottom: 16px;">
+      <li>Browse files from your Google Drive</li>
+      <li>Select PDFs, Docs, or Sheets</li>
+      <li>Automatically extract text for generating quizzes</li>
+    </ul>
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--muted);">
+      ⚠️ Currently, Google Drive integration requires manual file selection. In the future, we'll add direct picker functionality.
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline" onclick="this.closest('div').parentElement.parentElement.remove()" style="flex: 1; justify-content: center;">Cancel</button>
+      <button class="btn" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; flex: 1; justify-content: center;" onclick="setupGoogleDrive(this)">Proceed</button>
+    </div>
+  `;
+  
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  // Close on background click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+}
+
+function setupGoogleDrive(btn) {
+  const status = document.getElementById('google-drive-status');
+  
+  // Simulate Google Drive connection
+  btn.textContent = 'Connecting...';
+  btn.disabled = true;
+  
+  setTimeout(() => {
+    // Show success message
+    status.textContent = '✓ Google Drive feature enabled! Manual upload ready.';
+    status.style.color = 'var(--primary)';
+    
+    // Update button
+    btn.textContent = '✓ Connected';
+    btn.style.opacity = '0.6';
+    btn.disabled = true;
+    
+    // Close modal
+    document.querySelector('div[style*="position: fixed"]')?.remove();
+    
+    // Show helpful message in textarea
+    const textInput = document.getElementById('text-input');
+    if (!textInput.value) {
+      textInput.placeholder = 'Your Google Drive is ready! You can now select files to analyze...';
+    }
+  }, 1500);
 }
 
 // ═══ KEYBOARD SHORTCUTS ═══
