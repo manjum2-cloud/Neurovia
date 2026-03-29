@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Neurovia - AI Study Engine for generating MCQs, flashcards and summaries from study material">
 <title>Neurovia — AI Study Engine</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════
    TOKENS
@@ -17,6 +19,10 @@
   --border: #2e2e28;
   --gold: #c9a84c;
   --gold2: #e8c96a;
+  --opt-a: #c9a84c;
+  --opt-b: #d4b84e;
+  --opt-c: #dfc851;
+  --opt-d: #eae353;
   --text: #f0ede6;
   --muted: #6b6b60;
   --correct: #4caf7d;
@@ -33,6 +39,10 @@
   --border: #d8d2c6;
   --gold: #8c6d2f;
   --gold2: #b8912a;
+  --opt-a: #8c6d2f;
+  --opt-b: #9d7a2e;
+  --opt-c: #ae882d;
+  --opt-d: #bf952c;
   --text: #1a1a14;
   --muted: #8a8476;
   --correct: #2d7a50;
@@ -491,6 +501,7 @@ input[type=range] { flex: 1; accent-color: var(--gold); cursor: pointer; }
 .quiz-progress-fill {
   height: 100%; background: var(--gold);
   border-radius: 1px; transition: width .5s ease;
+  will-change: width;
 }
 .quiz-q-label {
   font-family: 'DM Mono', monospace;
@@ -562,6 +573,21 @@ input[type=range] { flex: 1; accent-color: var(--gold); cursor: pointer; }
   color: var(--muted); flex-shrink: 0; width: 20px;
   margin-top: 1px;
 }
+
+.option-btn:nth-child(1) .opt-label { color: var(--opt-a); }
+.option-btn:nth-child(2) .opt-label { color: var(--opt-b); }
+.option-btn:nth-child(3) .opt-label { color: var(--opt-c); }
+.option-btn:nth-child(4) .opt-label { color: var(--opt-d); }
+
+.option-btn:nth-child(1):hover:not(:disabled) { border-color: var(--opt-a); }
+.option-btn:nth-child(2):hover:not(:disabled) { border-color: var(--opt-b); }
+.option-btn:nth-child(3):hover:not(:disabled) { border-color: var(--opt-c); }
+.option-btn:nth-child(4):hover:not(:disabled) { border-color: var(--opt-d); }
+
+.option-btn:nth-child(1)::before { background: var(--opt-a); }
+.option-btn:nth-child(2)::before { background: var(--opt-b); }
+.option-btn:nth-child(3)::before { background: var(--opt-c); }
+.option-btn:nth-child(4)::before { background: var(--opt-d); }
 .option-btn.correct { border-color: var(--correct); background: rgba(76,175,125,.08); }
 .option-btn.correct .opt-label { color: var(--correct); }
 .option-btn.correct::before { background: var(--correct); transform: scaleY(1); }
@@ -716,6 +742,7 @@ input[type=range] { flex: 1; accent-color: var(--gold); cursor: pointer; }
   position: relative;
   transform-style: preserve-3d;
   transition: transform .55s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
 }
 .flashcard.flipped { transform: rotateY(180deg); }
 .fc-face {
@@ -834,15 +861,419 @@ footer {
 }
 
 /* ═══════════════════════════════════════════
-   MOBILE
+   DIFFICULTY SELECTOR
 ═══════════════════════════════════════════ */
+.difficulty-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.difficulty-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.difficulty-btn:hover { border-color: var(--gold); }
+.difficulty-btn.active {
+  background: var(--gold);
+  color: #0c0c0a;
+  border-color: var(--gold);
+}
+
+.difficulty-easy { --diff-color: #4caf7d; }
+.difficulty-medium { --diff-color: #ffc107; }
+.difficulty-hard { --diff-color: #e05252; }
+
+/* ═══════════════════════════════════════════
+   HISTORY & ANALYTICS
+═══════════════════════════════════════════ */
+.analytics-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.analytics-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px;
+  text-align: center;
+}
+
+.analytics-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.analytics-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.history-item:hover { border-color: var(--gold); }
+
+.history-info {
+  flex: 1;
+}
+
+.history-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.history-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  color: var(--gold);
+  text-align: right;
+}
+
+/* ═══════════════════════════════════════════
+   ACHIEVEMENTS & XP
+═══════════════════════════════════════════ */
+.xp-bar {
+  background: var(--surface2);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  transition: width .5s ease;
+}
+
+.xp-info {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.achievement-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  opacity: .5;
+}
+
+.achievement-badge.unlocked {
+  opacity: 1;
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,168,76,.2);
+}
+
+.achievement-badge:hover { transform: scale(1.05); }
+
+.badge-icon { font-size: 24px; margin-bottom: 4px; }
+.badge-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   NOTES & FLAGS
+═══════════════════════════════════════════ */
+.question-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.flag-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.flag-btn.flagged {
+  background: rgba(224,82,82,.15);
+  border-color: var(--wrong);
+  color: var(--wrong);
+}
+
+.note-section {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.note-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+}
+
+.note-input:focus { border-color: var(--gold); }
+
+/* ═══════════════════════════════════════════
+   MULTIPLAYER MODE
+═══════════════════════════════════════════ */
+.multiplayer-join {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.game-code-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.game-code-input:focus { border-color: var(--gold); }
+
+.multiplayer-leaderboard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+}
+
+.leaderboard-item:last-child { border-bottom: none; }
+
+.player-rank {
+  color: var(--gold);
+  font-weight: bold;
+  min-width: 30px;
+}
+
+.player-name { flex: 1; color: var(--text); }
+.player-score { color: var(--correct); font-weight: bold; }
+
+/* ═══════════════════════════════════════════
+   QUESTION BANK
+═══════════════════════════════════════════ */
+.bank-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.bank-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bank-item:hover { border-color: var(--gold); }
+
+.bank-info { flex: 1; }
+.bank-title {
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.bank-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.bank-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ═══════════════════════════════════════════
+   SHARE CARD
+═══════════════════════════════════════════ */
+.share-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 2px solid var(--gold);
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.share-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(201,168,76,.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.share-card-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.share-card-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.share-card-stats {
+  display: flex;
+  justify-content: space-around;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.share-card-branding {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════
+   REVIEW PREVIOUS
+═══════════════════════════════════════════ */
+.review-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.review-nav {
+  padding: 10px 16px;
+  font-size: 12px;
+}
+@media(max-width: 768px) {
+  .app { padding: 0 16px 60px; }
+  .hero { padding: 40px 0 30px; }
+  .hero-title { font-size: clamp(40px, 10vw, 64px); }
+  .btn { font-size: 14px; padding: 12px 24px; }
+}
 @media(max-width: 600px) {
   .hero-deco { display: none; }
   .stats-row { grid-template-columns: 1fr 1fr; }
   .presets-grid { grid-template-columns: 1fr 1fr; }
   .mode-tab { font-size: 9px; padding: 12px 8px; }
-  .quiz-topbar { gap: 8px; }
+  .quiz-topbar { gap: 8px; flex-wrap: wrap; }
   nav { padding: 16px 0; }
+  .options-grid { grid-template-columns: 1fr; }
+  .option-btn { padding: 14px 16px; }
+  .quiz-stat { gap: 2px; }
+  .quiz-stat-num { font-size: 20px; }
+  .q-text { font-size: clamp(16px, 2vw, 20px); }
+  .app { padding: 0 12px 40px; }
+  .fc-controls { flex-wrap: wrap; }
+  .generate-bar { flex-direction: column; gap: 8px; }
+  .generate-bar .btn { width: 100%; }
+  textarea { font-size: 16px; padding: 12px; }
+  .quiz-topbar { border-top: none; padding: 16px 0; }
+  .fc-topbar { padding: 16px 0 16px; }
+}
+@media(max-width: 400px) {
+  .hero-title { font-size: clamp(32px, 8vw, 48px); }
+  .presets-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr; }
+  .logo-text { font-size: 18px; }
+  .page-controls { flex-direction: column; }
+  .page-controls button { width: 100%; }
 }
 
 /* ═══════════════════════════════════════════
@@ -858,6 +1289,202 @@ select {
   text-transform: uppercase; letter-spacing: 1px;
 }
 select:focus { border-color: var(--gold); }
+
+/* ═══════════════════════════════════════════
+   ACCESSIBILITY
+═══════════════════════════════════════════ */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════
+   SEARCH INPUT
+═══════════════════════════════════════════ */
+.search-bar {
+  display: flex; gap: 8px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  transition: border-color .2s;
+  outline: none;
+}
+
+.search-input:focus { border-color: var(--gold); }
+.search-input::placeholder { color: var(--muted); }
+
+.search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  display: none;
+}
+
+.search-input:not(:placeholder-shown) ~ .search-clear {
+  display: block;
+}
+
+/* ═══════════════════════════════════════════
+   PAUSE/RESUME CONTROLS
+═══════════════════════════════════════════ */
+.quiz-controls {
+  display: flex; gap: 8px;
+  align-items: center;
+}
+
+.pause-badge {
+  background: rgba(201,168,76,.15);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 6px 12px;
+  border-radius: 2px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: none;
+}
+
+.pause-badge.show { display: inline-block; }
+
+/* ═══════════════════════════════════════════
+   EXPORT MENU
+═══════════════════════════════════════════ */
+.export-menu {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════
+   SHARE MODAL
+═══════════════════════════════════════════ */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .2s ease;
+}
+
+.modal.show { display: flex; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  animation: slideUp .3s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.modal-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.share-link-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.share-link-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  word-break: break-all;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.share-link-copy {
+  padding: 12px 16px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.share-methods {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.share-method-btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.modal-close {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-close button {
+  padding: 10px 20px;
+  font-size: 13px;
+}
 </style>
 </head>
 <body>
@@ -880,6 +1507,8 @@ select:focus { border-color: var(--gold); }
       <span class="logo-text">NEURO<span>VIA</span></span>
     </a>
     <div class="nav-right">
+      <button class="btn btn-outline" id="nav-history-btn" onclick="openHistory()" style="font-size:11px;padding:8px 12px;display:none">📊 History</button>
+      <button class="btn btn-outline" id="nav-bank-btn" onclick="openBank()" style="font-size:11px;padding:8px 12px;display:none">💾 Bank</button>
       <span class="theme-label" id="theme-label">DARK</span>
       <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"></div>
     </div>
@@ -961,6 +1590,13 @@ select:focus { border-color: var(--gold); }
         <input type="range" id="q-count" min="5" max="30" value="10" oninput="document.getElementById('q-count-val').textContent=this.value">
         <span class="range-val" id="q-count-val">10</span>
       </div>
+
+      <div class="section-label">Difficulty</div>
+      <div class="difficulty-group">
+        <button class="difficulty-btn active" onclick="selectDifficulty('easy', this)">🟢 Easy</button>
+        <button class="difficulty-btn" onclick="selectDifficulty('medium', this)">🟡 Medium</button>
+        <button class="difficulty-btn" onclick="selectDifficulty('hard', this)">🔴 Hard</button>
+      </div>
     </div>
 
     <div class="section-label">Focus Area <span style="color:var(--muted);font-size:9px;margin-left:6px">OPTIONAL</span></div>
@@ -1001,18 +1637,29 @@ select:focus { border-color: var(--gold); }
         </div>
         <div class="quiz-q-label" id="q-counter">Q 1 / 10</div>
       </div>
-      <div class="timer-ring" id="timer-ring">
-        <svg width="48" height="48" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border)" stroke-width="3"/>
-          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--gold)" stroke-width="3"
-            stroke-dasharray="125.7" id="timer-arc" stroke-dashoffset="0" stroke-linecap="round"/>
-        </svg>
-        <div class="timer-text" id="timer-text">30</div>
+      <div class="quiz-controls">
+        <button class="btn btn-outline" id="pause-btn" onclick="togglePause()" style="padding:10px 16px;font-size:12px" title="Pause quiz">⏸ Pause</button>
+        <div class="timer-ring" id="timer-ring">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border)" stroke-width="3"/>
+            <circle cx="24" cy="24" r="20" fill="none" stroke="var(--gold)" stroke-width="3"
+              stroke-dasharray="125.7" id="timer-arc" stroke-dashoffset="0" stroke-linecap="round"/>
+          </svg>
+          <div class="timer-text" id="timer-text">30</div>
+        </div>
       </div>
+      <div class="pause-badge" id="pause-badge">⏸ PAUSED</div>
     </div>
 
     <div class="question-block">
       <div class="q-topic-tag" id="q-topic"></div>
+      <div class="question-controls">
+        <button class="btn btn-outline flag-btn" id="flag-btn" onclick="toggleFlag()" title="Flag this question for review">🚩 Flag</button>
+        <button class="btn btn-outline review-nav" id="review-btn" onclick="toggleNotes()" style="display:none">📝 Notes</button>
+      </div>
+      <div class="note-section" id="note-section" style="display:none">
+        <textarea class="note-input" id="q-note" placeholder="Add your notes here... (saved to this question)"></textarea>
+      </div>
       <div class="q-text" id="q-text"></div>
       <div class="options-grid" id="options-grid"></div>
       <div class="explanation-box" id="explanation-box">
@@ -1021,8 +1668,15 @@ select:focus { border-color: var(--gold); }
       </div>
     </div>
 
+    <div class="review-controls" id="review-controls" style="display:none">
+      <button class="btn btn-outline review-nav" onclick="previousQuestion()" title="Previous question (arrow ← or left click)">← Previous</button>
+      <span class="btn btn-outline review-nav" style="border:none;cursor:default" id="review-counter">1/10</span>
+      <button class="btn btn-outline review-nav" onclick="nextReview()" title="Next question (arrow → or right click)">Next →</button>
+    </div>
+
     <div class="next-row">
       <button class="btn btn-outline" onclick="goHome()" style="font-size:13px;padding:10px 20px">✕ Quit</button>
+      <button class="btn btn-outline" id="share-quiz-btn" onclick="shareQuizLink()" style="font-size:13px;padding:10px 20px;display:none">🔗 Share Quiz</button>
       <button class="btn btn-gold" id="next-btn" onclick="nextQuestion()" style="display:none">Next →</button>
     </div>
   </div>
@@ -1034,6 +1688,17 @@ select:focus { border-color: var(--gold); }
       <div class="results-verdict" id="results-verdict">Well done.</div>
       <div class="results-sub" id="results-sub"></div>
     </div>
+
+    <div class="xp-bar">
+      <div class="xp-fill" id="xp-fill" style="width:0%"></div>
+    </div>
+    <div class="xp-info">
+      <span>XP: <strong id="xp-earned">0</strong> / <strong id="xp-total">100</strong></span>
+      <span>Level: <strong id="level-display">1</strong></span>
+    </div>
+
+    <div class="section-label" style="margin-top:24px">Achievements Unlocked</div>
+    <div class="achievements-grid" id="achievements-grid"></div>
 
     <div class="stats-row">
       <div class="stat-block">
@@ -1050,6 +1715,20 @@ select:focus { border-color: var(--gold); }
       </div>
     </div>
 
+    <div class="section-label">Topic Performance</div>
+    <div id="topic-analytics"></div>
+
+    <div class="share-card" id="share-card">
+      <div class="share-card-score" id="share-score">0%</div>
+      <div class="share-card-text">NEUROVIA QUIZ RESULT</div>
+      <div class="share-card-stats">
+        <div>✓ <span id="share-correct">0</span></div>
+        <div>✗ <span id="share-wrong">0</span></div>
+        <div>🔥 <span id="share-streak">0</span></div>
+      </div>
+      <div class="share-card-branding">neurovia.app</div>
+    </div>
+
     <div class="weak-section" id="weak-section" style="display:none">
       <div class="weak-title">⚠ Weak Topics</div>
       <div id="weak-topics-list"></div>
@@ -1060,6 +1739,8 @@ select:focus { border-color: var(--gold); }
       <button class="btn btn-gold" onclick="retakeQuiz()">↺ Retake</button>
       <button class="btn btn-correct" onclick="getWeakFlashcards()" id="weak-fc-btn" style="display:none">🃏 Weak Flashcards</button>
       <button class="btn btn-outline" onclick="getAllFlashcards()">🃏 All Flashcards</button>
+      <button class="btn btn-outline export-btn" onclick="exportResults()">📥 Export</button>
+      <button class="btn btn-outline export-btn" onclick="shareResultCard()">🖼 Share Card</button>
       <button class="btn btn-outline" onclick="goHome()">＋ New Material</button>
     </div>
   </div>
@@ -1070,6 +1751,11 @@ select:focus { border-color: var(--gold); }
       <button class="btn btn-outline" onclick="backFromFlashcards()" style="font-size:13px;padding:10px 18px">← Back</button>
       <div class="fc-title" id="fc-title">FLASHCARDS</div>
       <div class="fc-counter" id="fc-counter">1 / 10</div>
+    </div>
+
+    <div class="search-bar" id="search-bar" style="display:none">
+      <input type="text" class="search-input" id="fc-search" placeholder="Search flashcards by question..." oninput="searchFlashcards(this.value)">
+      <button type="button" class="search-clear" onclick="clearSearch()">✕</button>
     </div>
 
     <div class="flashcard-scene" onclick="flipCard()">
@@ -1109,6 +1795,52 @@ select:focus { border-color: var(--gold); }
     </div>
   </div>
 
+  <!-- ═══ SCREEN: HISTORY ═══ -->
+  <div class="screen" id="screen-history">
+    <div class="fc-topbar">
+      <button class="btn btn-outline" onclick="goHome()" style="font-size:13px;padding:10px 18px">← Back</button>
+      <div class="fc-title">Quiz History</div>
+    </div>
+
+    <div class="section-label">Overall Statistics</div>
+    <div class="analytics-panel">
+      <div class="analytics-card">
+        <div class="analytics-value" id="stat-total-quizzes">0</div>
+        <div class="analytics-label">Quizzes Taken</div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-value" id="stat-avg-score">0%</div>
+        <div class="analytics-label">Average Score</div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-value" id="stat-best-score">0%</div>
+        <div class="analytics-label">Best Score</div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-value" id="stat-total-xp">0</div>
+        <div class="analytics-label">Total XP</div>
+      </div>
+    </div>
+
+    <div class="section-label">Recent Quizzes</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <!-- ═══ SCREEN: QUESTION BANK ═══ -->
+  <div class="screen" id="screen-bank">
+    <div class="fc-topbar">
+      <button class="btn btn-outline" onclick="goHome()" style="font-size:13px;padding:10px 18px">← Back</button>
+      <div class="fc-title">Question Bank</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)" id="bank-counter">0 Saved</div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" id="bank-search" placeholder="Search saved quizzes..." oninput="searchBank(this.value)">
+    </div>
+
+    <div class="bank-list" id="bank-list"></div>
+  </div>
+
   <!-- FOOTER -->
   <footer>
     <div class="footer-brand">NEURO<span>VIA</span> ©2026</div>
@@ -1125,16 +1857,57 @@ select:focus { border-color: var(--gold); }
 
 </div><!-- end .app -->
 
+<!-- SHARE QUIZ MODAL -->
+<div class="modal" id="share-modal">
+  <div class="modal-content">
+    <div class="modal-title">📤 Share Quiz</div>
+    <div class="modal-desc">Send this link to your friend so they can take the exact same quiz.</div>
+    
+    <div class="share-link-group">
+      <textarea class="share-link-input" id="share-link-input" readonly></textarea>
+      <button class="btn btn-gold share-link-copy" onclick="copyShareLink()">Copy</button>
+    </div>
+
+    <div class="share-methods">
+      <button class="btn btn-outline share-method-btn" onclick="shareViaMethod('twitter')">𝕏 Tweet</button>
+      <button class="btn btn-outline share-method-btn" onclick="shareViaMethod('email')">✉ Email</button>
+      <button class="btn btn-outline share-method-btn" onclick="shareViaMethod('whatsapp')">💬 WhatsApp</button>
+    </div>
+
+    <div class="modal-close">
+      <button class="btn btn-outline" onclick="closeShareModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ STATE ═══
 let selectedMode = 'quiz';
+let selectedDifficulty = 'easy';
 let questions = [], flashcards = [], fileContents = [];
 let currentQ = 0, score = 0, streak = 0, maxStreak = 0;
 let wrongTopics = new Set(), wrongQIndices = [];
-let currentFCIndex = 0, fcDeck = [];
+let currentFCIndex = 0, fcDeck = [], fcDeckOriginal = [];
 let fromResults = false;
 let timerInterval = null;
 let timeLeft = 30;
+let quizPaused = false;
+let allFlashcards = [];
+let flaggedQuestions = new Set();
+let questionNotes = {};
+let isReviewMode = false;
+let xpEarned = 0;
+let userLevel = 1;
+let userXP = 0;
+let userAchievements = new Set();
+
+// Constants
+const STORAGE_KEY = 'neurovia_quiz_state';
+const RESULTS_STORAGE_KEY = 'neurovia_last_results';
+const HISTORY_STORAGE_KEY = 'neurovia_history';
+const BANK_STORAGE_KEY = 'neurovia_bank';
+const PROFILE_STORAGE_KEY = 'neurovia_profile';
+const XP_PER_LEVEL = 500;
 
 // ═══ CURSOR ═══
 const cursor = document.getElementById('cursor');
@@ -1206,15 +1979,70 @@ async function handleFiles(files) {
   const listEl = document.getElementById('file-list');
   listEl.innerHTML = '';
   for (const file of files) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      const b64 = await fileToBase64(file);
-      fileContents.push({ type: 'pdf', name: file.name, b64 });
-    } else {
-      const text = await file.text();
-      fileContents.push({ type: 'text', name: file.name, text });
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        const b64 = await fileToBase64(file);
+        fileContents.push({ type: 'pdf', name: file.name, b64 });
+        listEl.innerHTML += `<div class="file-badge">📎 ${file.name}</div>`;
+      } else if (ext === 'pptx' || ext === 'ppt') {
+        const text = await extractPPTXText(file);
+        if (text.trim()) {
+          fileContents.push({ type: 'text', name: file.name, text });
+          listEl.innerHTML += `<div class="file-badge">📎 ${file.name}</div>`;
+        } else {
+          listEl.innerHTML += `<div class="file-badge" style="color:var(--wrong)">⚠ ${file.name} (empty)</div>`;
+        }
+      } else if (ext === 'docx') {
+        const text = await extractDOCXText(file);
+        if (text.trim()) {
+          fileContents.push({ type: 'text', name: file.name, text });
+          listEl.innerHTML += `<div class="file-badge">📎 ${file.name}</div>`;
+        }
+      } else {
+        const text = await file.text();
+        fileContents.push({ type: 'text', name: file.name, text });
+        listEl.innerHTML += `<div class="file-badge">📎 ${file.name}</div>`;
+      }
+    } catch (err) {
+      console.error('Error processing file:', err);
+      listEl.innerHTML += `<div class="file-badge" style="color:var(--wrong)">✕ ${file.name} (error)</div>`;
     }
-    listEl.innerHTML += `<div class="file-badge">📎 ${file.name}</div>`;
+  }
+}
+
+async function extractPPTXText(file) {
+  try {
+    const zip = new JSZip();
+    const data = await file.arrayBuffer();
+    const pptx = await zip.loadAsync(data);
+    let text = '';
+    const slides = Object.keys(pptx.files).filter(k => k.includes('ppt/slides/slide') && k.endsWith('.xml'));
+    for (const slide of slides.sort()) {
+      const content = await pptx.file(slide).async('text');
+      const matches = content.match(/<a:t>([^<]+)<\/a:t>/g) || [];
+      matches.forEach(match => {
+        text += match.replace(/<a:t>|<\/a:t>/g, '') + ' ';
+      });
+    }
+    return text.trim();
+  } catch (err) {
+    console.error('PPTX extraction error:', err);
+    return '';
+  }
+}
+
+async function extractDOCXText(file) {
+  try {
+    const zip = new JSZip();
+    const data = await file.arrayBuffer();
+    const docx = await zip.loadAsync(data);
+    const content = await docx.file('word/document.xml').async('text');
+    const text = content.replace(/<\/w:p>/g, '\n').replace(/<[^>]+>/g, '');
+    return text;
+  } catch (err) {
+    console.error('DOCX extraction error:', err);
+    return '';
   }
 }
 
@@ -1241,6 +2069,591 @@ function loadPreset(key) {
   document.getElementById('text-input').value = PRESETS[key];
   document.getElementById('text-input').focus();
   document.getElementById('text-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ═══ KEYBOARD SHORTCUTS ═══
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' && !quizPaused) { if (document.getElementById('screen-quiz').classList.contains('active')) togglePause(); }
+  else if (e.key === 'n' && quizPaused) { togglePause(); }
+  else if (e.key === 'ArrowRight') { 
+    if (document.getElementById('screen-flashcards').classList.contains('active')) fcNav(1); 
+    else if (document.getElementById('screen-quiz').classList.contains('active') && document.getElementById('next-btn').style.display === 'inline-flex') nextQuestion();
+    else if (isReviewMode) nextReview();
+  }
+  else if (e.key === 'ArrowLeft') { 
+    if (document.getElementById('screen-flashcards').classList.contains('active')) fcNav(-1);
+    else if (isReviewMode) previousQuestion();
+  }
+  else if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+    if (document.getElementById('screen-quiz').classList.contains('active') && !quizPaused && !isReviewMode) {
+      const idx = parseInt(e.key) - 1;
+      const btns = document.querySelectorAll('.option-btn');
+      if (idx < btns.length) btns[idx].click();
+    }
+  }
+});
+
+// ═══ DIFFICULTY ═══
+function selectDifficulty(level, el) {
+  selectedDifficulty = level;
+  document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══ PROFILE & XP ═══
+function loadProfile() {
+  const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
+  if (saved) {
+    const profile = JSON.parse(saved);
+    userXP = profile.xp || 0;
+    userLevel = Math.floor(userXP / XP_PER_LEVEL) + 1;
+    userAchievements = new Set(profile.achievements || []);
+  }
+}
+
+function saveProfile() {
+  const profile = { xp: userXP, achievements: Array.from(userAchievements) };
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+}
+
+function addXP(amount) {
+  xpEarned += amount;
+  userXP += amount;
+  userLevel = Math.floor(userXP / XP_PER_LEVEL) + 1;
+  saveProfile();
+}
+
+function unlockAchievement(id) {
+  if (!userAchievements.has(id)) {
+    userAchievements.add(id);
+    saveProfile();
+    showAchievementNotification(id);
+  }
+}
+
+function showAchievementNotification(id) {
+  const achievements = {
+    perfect: { icon: '🏆', name: 'Perfect Score!', desc: '100% on a quiz' },
+    speedrun: { icon: '⚡', name: 'Speed Runner', desc: 'Complete quiz in 30 sec/Q' },
+    streak5: { icon: '🔥', name: '5-Streak', desc: 'Get 5 correct in a row' },
+    streak10: { icon: '🌟', name: '10-Streak', desc: 'Get 10 correct in a row' },
+    first100: { icon: '💯', name: 'Milestone!', desc: 'Earn 100 XP' },
+    collector: { icon: '💾', name: 'Collector', desc: 'Save 10 quizzes' }
+  };
+  const ach = achievements[id];
+  if (!ach) return;
+  const notif = document.createElement('div');
+  notif.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--surface);
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 5000;
+    animation: slideUp .3s ease;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  `;
+  notif.innerHTML = `<div style="font-size:24px">${ach.icon}</div><div><strong>${ach.name}</strong><br><span style="color:var(--muted);font-size:10px">${ach.desc}</span></div>`;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 3500);
+}
+
+// ═══ NOTES & FLAGS ═══
+function toggleFlag() {
+  if (!document.getElementById('screen-quiz').classList.contains('active')) return;
+  const flagged = flaggedQuestions.has(currentQ);
+  const btn = document.getElementById('flag-btn');
+  if (flagged) {
+    flaggedQuestions.delete(currentQ);
+    btn.classList.remove('flagged');
+  } else {
+    flaggedQuestions.add(currentQ);
+    btn.classList.add('flagged');
+  }
+}
+
+function toggleNotes() {
+  const noteSection = document.getElementById('note-section');
+  noteSection.style.display = noteSection.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveNote() {
+  const noteText = document.getElementById('q-note').value;
+  questionNotes[currentQ] = noteText;
+}
+
+function loadNote() {
+  const noteText = questionNotes[currentQ] || '';
+  document.getElementById('q-note').value = noteText;
+}
+
+// ═══ HISTORY & ANALYTICS ═══
+function saveQuizToHistory() {
+  const total = questions.length;
+  const pct = Math.round((score / total) * 100);
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleString(),
+    score: pct,
+    correct: score,
+    total: total,
+    difficulty: selectedDifficulty,
+    xp: xpEarned
+  };
+  
+  let history = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+  history.unshift(entry);
+  history = history.slice(0, 100); // Keep last 100
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+}
+
+function openHistory() {
+  loadProfile();
+  const history = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+  
+  if (history.length === 0) {
+    alert('No quiz history yet. Take a quiz to start tracking!');
+    return;
+  }
+  
+  const avgScore = Math.round(history.reduce((a, q) => a + q.score, 0) / history.length);
+  const bestScore = Math.max(...history.map(q => q.score));
+  const totalXP = history.reduce((a, q) => a + q.xp, 0);
+  
+  document.getElementById('stat-total-quizzes').textContent = history.length;
+  document.getElementById('stat-avg-score').textContent = avgScore + '%';
+  document.getElementById('stat-best-score').textContent = bestScore + '%';
+  document.getElementById('stat-total-xp').textContent = totalXP;
+  
+  const historyList = document.getElementById('history-list');
+  historyList.innerHTML = history.map(q => `
+    <div class="history-item" onclick="alert('Score: ${q.score}%\\nDate: ${q.date}\\nDifficulty: ${q.difficulty}')">
+      <div class="history-info">
+        <div class="history-date">${q.date}</div>
+      </div>
+      <div class="history-score">${q.score}%</div>
+    </div>
+  `).join('');
+  
+  showScreen('screen-history');
+}
+
+// ═══ QUESTION BANK ═══
+function saveToBank() {
+  const entry = {
+    id: Date.now(),
+    questions: questions,
+    flashcards: flashcards,
+    difficulty: selectedDifficulty,
+    date: new Date().toLocaleString(),
+    name: `Quiz - ${new Date().toLocaleDateString()}`
+  };
+  
+  let bank = JSON.parse(localStorage.getItem(BANK_STORAGE_KEY) || '[]');
+  bank.unshift(entry);
+  localStorage.setItem(BANK_STORAGE_KEY, JSON.stringify(bank));
+}
+
+function openBank() {
+  let bank = JSON.parse(localStorage.getItem(BANK_STORAGE_KEY) || '[]');
+  document.getElementById('bank-counter').textContent = bank.length + ' Saved';
+  
+  const bankList = document.getElementById('bank-list');
+  if (bank.length === 0) {
+    bankList.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No saved quizzes yet</p>';
+  } else {
+    bankList.innerHTML = bank.map(q => `
+      <div class="bank-item">
+        <div class="bank-info">
+          <div class="bank-title">${q.name}</div>
+          <div class="bank-meta">${q.questions.length} Q · ${q.difficulty} · ${q.date.split(',')[0]}</div>
+        </div>
+        <div class="bank-actions">
+          <button class="btn btn-gold" onclick="loadFromBank(${q.id})" style="padding:8px 12px;font-size:11px">Load</button>
+          <button class="btn btn-wrong" onclick="deleteFromBank(${q.id})" style="padding:8px 12px;font-size:11px">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  showScreen('screen-bank');
+}
+
+function loadFromBank(id) {
+  const bank = JSON.parse(localStorage.getItem(BANK_STORAGE_KEY) || '[]');
+  const quiz = bank.find(q => q.id === id);
+  if (quiz) {
+    questions = quiz.questions;
+    flashcards = quiz.flashcards;
+    selectedDifficulty = quiz.difficulty;
+    startQuiz();
+  }
+}
+
+function deleteFromBank(id) {
+  if (confirm('Delete this quiz?')) {
+    let bank = JSON.parse(localStorage.getItem(BANK_STORAGE_KEY) || '[]');
+    bank = bank.filter(q => q.id !== id);
+    localStorage.setItem(BANK_STORAGE_KEY, JSON.stringify(bank));
+    openBank();
+  }
+}
+
+function searchBank(query) {
+  const bank = JSON.parse(localStorage.getItem(BANK_STORAGE_KEY) || '[]');
+  const filtered = bank.filter(q => q.name.toLowerCase().includes(query.toLowerCase()));
+  
+  const bankList = document.getElementById('bank-list');
+  if (filtered.length === 0) {
+    bankList.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No quizzes found</p>';
+  } else {
+    bankList.innerHTML = filtered.map(q => `
+      <div class="bank-item">
+        <div class="bank-info">
+          <div class="bank-title">${q.name}</div>
+          <div class="bank-meta">${q.questions.length} Q · ${q.difficulty}</div>
+        </div>
+        <div class="bank-actions">
+          <button class="btn btn-gold" onclick="loadFromBank(${q.id})" style="padding:8px 12px;font-size:11px">Load</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ═══ REVIEW & UNDO ═══
+function previousQuestion() {
+  if (isReviewMode && currentQ > 0) {
+    saveNote();
+    currentQ--;
+    renderReviewQuestion();
+  }
+}
+
+function nextReview() {
+  if (isReviewMode && currentQ < questions.length - 1) {
+    saveNote();
+    currentQ++;
+    renderReviewQuestion();
+  }
+}
+
+function renderReviewQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('q-counter').textContent = `Q ${currentQ + 1} / ${questions.length}`;
+  document.getElementById('progress-bar').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+  document.getElementById('q-topic').textContent = q.topic || '';
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('explanation-text').textContent = q.explanation;
+  document.getElementById('explanation-box').classList.add('show');
+  
+  const labels = ['A', 'B', 'C', 'D'];
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    if (wrongQIndices.includes(currentQ) && i === q.correct) btn.classList.add('correct');
+    if (wrongQIndices.includes(currentQ) && i !== q.correct && flaggedQuestions.has(currentQ)) btn.classList.add('wrong');
+    btn.innerHTML = `<span class="opt-label">${labels[i]}</span><span>${opt}</span>`;
+    btn.disabled = true;
+    grid.appendChild(btn);
+  });
+  
+  loadNote();
+  document.getElementById('flag-btn').classList.toggle('flagged', flaggedQuestions.has(currentQ));
+  document.getElementById('review-counter').textContent = `${currentQ + 1}/${questions.length}`;
+}
+
+// ═══ SHARE CARD ═══
+function shareResultCard() {
+  const card = document.getElementById('share-card');
+  const canvas = document.createElement('canvas');
+  canvas.width = 600;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  
+  ctx.fillStyle = '#1a1a16';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 80px Bebas Neue';
+  ctx.textAlign = 'center';
+  ctx.fillText(document.getElementById('results-pct').textContent, 300, 120);
+  
+  ctx.fillStyle = '#f0ede6';
+  ctx.font = '20px Playfair Display';
+  ctx.fillText('NEUROVIA QUIZ RESULT', 300, 180);
+  
+  ctx.font = '14px DM Mono';
+  ctx.fillStyle = '#6b6b60';
+  ctx.fillText(`✓ ${document.getElementById('stat-correct').textContent} | ✗ ${document.getElementById('stat-wrong').textContent} | 🔥 ${maxStreak}`, 300, 280);
+  
+  ctx.font = '12px Bebas Neue';
+  ctx.fillText('neurovia.app', 300, 360);
+  
+  const image = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.href = image;
+  link.download = `neurovia_score_${Date.now()}.png`;
+  link.click();
+}
+
+// ═══ PAUSE/RESUME ═══
+function togglePause() {
+  if (!document.getElementById('screen-quiz').classList.contains('active')) return;
+  quizPaused = !quizPaused;
+  const pauseBtn = document.getElementById('pause-btn');
+  const pauseBadge = document.getElementById('pause-badge');
+  const optionBtns = document.querySelectorAll('.option-btn');
+  
+  if (quizPaused) {
+    clearInterval(timerInterval);
+    pauseBtn.textContent = '▶ Resume';
+    pauseBadge.classList.add('show');
+    optionBtns.forEach(btn => btn.disabled = true);
+  } else {
+    pauseBtn.textContent = '⏸ Pause';
+    pauseBadge.classList.remove('show');
+    optionBtns.forEach(btn => btn.disabled = false);
+    startTimer();
+  }
+}
+
+// ═══ STORAGE ═══
+function saveQuizState() {
+  const state = {
+    currentQ, score, streak, maxStreak, wrongTopics: Array.from(wrongTopics), wrongQIndices,
+    questions, flashcards, selectedMode, timeLeft, quizPaused
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadQuizState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const state = JSON.parse(saved);
+      currentQ = state.currentQ;
+      score = state.score;
+      streak = state.streak;
+      maxStreak = state.maxStreak;
+      wrongTopics = new Set(state.wrongTopics);
+      wrongQIndices = state.wrongQIndices;
+      questions = state.questions;
+      flashcards = state.flashcards;
+      selectedMode = state.selectedMode;
+      timeLeft = state.timeLeft;
+      quizPaused = state.quizPaused;
+      return true;
+    } catch (err) { 
+      console.error('Error loading state:', err);
+      return false;
+    }
+  }
+  return false;
+}
+
+function clearQuizState() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ═══ SHARE QUIZ ═══
+function encodeQuizData() {
+  const data = {
+    questions,
+    flashcards,
+    mode: selectedMode
+  };
+  const json = JSON.stringify(data);
+  const compressed = btoa(unescape(encodeURIComponent(json)));
+  return compressed;
+}
+
+function decodeQuizData(encoded) {
+  try {
+    const json = decodeURIComponent(escape(atob(encoded)));
+    return JSON.parse(json);
+  } catch (err) {
+    console.error('Error decoding quiz:', err);
+    return null;
+  }
+}
+
+function generateQuizLink() {
+  const encoded = encodeQuizData();
+  const baseUrl = window.location.origin + window.location.pathname;
+  return `${baseUrl}?quiz=${encoded}`;
+}
+
+function shareQuizLink() {
+  const link = generateQuizLink();
+  document.getElementById('share-link-input').value = link;
+  document.getElementById('share-modal').classList.add('show');
+}
+
+function copyShareLink() {
+  const input = document.getElementById('share-link-input');
+  input.select();
+  document.execCommand('copy');
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = '✓ Copied!';
+  btn.style.background = 'var(--correct)';
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.style.background = '';
+  }, 2000);
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('show');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('share-modal');
+  const modalContent = modal.querySelector('.modal-content');
+  if (e.target === modal && !modalContent.contains(e.target)) {
+    closeShareModal();
+  }
+});
+
+function shareViaMethod(method) {
+  const link = document.getElementById('share-link-input').value;
+  const quizText = `I generated a quiz with ${questions.length} questions on Neurovia! Can you score better than me? 🔥📚`;
+  
+  if (method === 'twitter') {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(quizText)}&url=${encodeURIComponent(link)}`;
+    window.open(url, '_blank');
+  } else if (method === 'email') {
+    const subject = 'Check out my Neurovia quiz!';
+    const body = `${quizText}\n\n${link}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  } else if (method === 'whatsapp') {
+    const msg = `${quizText}\n\n${link}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  }
+}
+
+// ═══ LOAD QUIZ FROM URL ═══
+function loadQuizFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const quizData = params.get('quiz');
+  
+  if (quizData) {
+    try {
+      const decoded = decodeQuizData(quizData);
+      if (decoded && decoded.questions) {
+        questions = decoded.questions;
+        flashcards = decoded.flashcards || [];
+        selectedMode = decoded.mode || 'quiz';
+        
+        // Show quiz header banner
+        const banner = document.createElement('div');
+        banner.style.cssText = `
+          background: rgba(201,168,76,.15);
+          border: 1px solid var(--gold);
+          border-radius: 2px;
+          padding: 12px 16px;
+          margin-bottom: 16px;
+          color: var(--gold);
+          font-family: 'DM Mono', monospace;
+          font-size: 12px;
+          text-align: center;
+          letter-spacing: 1px;
+        `;
+        banner.textContent = '🔗 QUIZ SHARED WITH YOU — TAKE IT NOW!';
+        const hero = document.getElementById('hero-section');
+        hero.parentNode.insertBefore(banner, hero);
+        
+        // Auto-start quiz
+        setTimeout(() => {
+          showScreen('screen-quiz');
+          startQuiz();
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Error loading shared quiz:', err);
+    }
+  }
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', loadQuizFromURL);
+
+// ═══ EXPORT & SHARE ═══
+function exportResults() {
+  const total = questions.length;
+  const pct = Math.round((score / total) * 100);
+  const csv = `Quiz Results
+Date,${new Date().toLocaleString()}
+Score,${score}/${total}
+Percentage,${pct}%
+Streak,${maxStreak}
+Weak Topics,"${Array.from(wrongTopics).join(', ')}"
+
+Question,Your Answer,Correct Answer,Topic
+${questions.map((q, i) => `"${q.question}","${wrongQIndices.includes(i) ? 'Wrong' : 'Correct'}","${q.options[q.correct]}","${q.topic}"`).join('\n')}`;
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `neurovia_results_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function shareResults() {
+  const total = questions.length;
+  const pct = Math.round((score / total) * 100);
+  const text = `I scored ${pct}% (${score}/${total}) on Neurovia with a ${maxStreak} streak! 🔥📚`;
+  
+  if (navigator.share) {
+    navigator.share({ title: 'Neurovia Quiz Result', text });
+  } else {
+    const url = `https://neurovia.app?score=${pct}&correct=${score}&total=${total}&streak=${maxStreak}`;
+    const shareText = `${text}\n${url}`;
+    navigator.clipboard.writeText(shareText).then(() => {
+      alert('Score copied to clipboard!');
+    });
+  }
+}
+
+// ═══ FLASHCARD SEARCH ═══
+let searchTimeout;
+function searchFlashcards(query) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    if (!query.trim()) {
+      fcDeck = fcDeckOriginal;
+    } else {
+      fcDeck = fcDeckOriginal.filter(fc => 
+        fc.question.toLowerCase().includes(query.toLowerCase()) ||
+        fc.answer.toLowerCase().includes(query.toLowerCase()) ||
+        fc.topic.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+    currentFCIndex = 0;
+    renderFC();
+    buildFCDots();
+  }, 150);
+}
+
+function clearSearch() {
+  document.getElementById('fc-search').value = '';
+  searchFlashcards('');
 }
 
 // ═══ MODE ═══
@@ -1351,19 +2764,32 @@ async function generate() {
   } catch (err) {
     console.error(err);
     showScreen('screen-upload');
-    alert('Error: ' + err.message);
+    const errorMsg = err.message || 'Unknown error occurred';
+    const userMsg = errorMsg.includes('API') ? 
+      `API Error: ${errorMsg}\n\nTry:\n• Check your internet connection\n• Verify file format\n• Try again in a moment` :
+      errorMsg.includes('parse') ?
+      `Response parsing failed. Try:\n• Shorter content\n• Simpler text\n• Fewer questions` :
+      `Error: ${errorMsg}`;
+    alert(userMsg);
   }
 }
 
 function buildPrompt(text, focus, qCount) {
   const focusPart = focus ? `\n\nFocus especially on: ${focus}` : '';
+  const difficultyDesc = selectedDifficulty === 'easy' ? 'Simple, basic concepts' : 
+                         selectedDifficulty === 'medium' ? 'Intermediate level, requires deeper understanding' : 
+                         'Advanced, tricky, exam-level difficulty';
+  
   return `Based on the study material provided above, generate exactly ${qCount} high-quality MCQs AND flashcards.${focusPart}
+
+Difficulty Level: ${selectedDifficulty.toUpperCase()} - ${difficultyDesc}
 
 RULES:
 - 4 options per question (A B C D), all plausible — no obvious answers
 - Clinical/exam wording, vary question types
 - Include topic label (2-4 words) and explanation (2-3 sentences)
 - Generate flashcards for all key concepts
+- Match difficulty level: ${selectedDifficulty === 'hard' ? 'Include edge cases, ambiguous scenarios' : selectedDifficulty === 'medium' ? 'Mix straightforward and nuanced questions' : 'Focus on core concepts only'}
 
 RESPOND ONLY WITH THIS JSON:
 {
@@ -1376,8 +2802,19 @@ RESPOND ONLY WITH THIS JSON:
 function startQuiz() {
   currentQ = 0; score = 0; streak = 0; maxStreak = 0;
   wrongTopics = new Set(); wrongQIndices = [];
+  quizPaused = false;
+  flaggedQuestions = new Set();
+  questionNotes = {};
+  isReviewMode = false;
+  xpEarned = 0;
+  document.getElementById('pause-btn').textContent = '⏸ Pause';
+  document.getElementById('pause-badge').classList.remove('show');
+  document.getElementById('share-quiz-btn').style.display = 'inline-flex';
+  document.getElementById('nav-history-btn').style.display = isReviewMode ? 'none' : 'inline-flex';
+  document.getElementById('nav-bank-btn').style.display = isReviewMode ? 'none' : 'inline-flex';
   showScreen('screen-quiz');
   renderQuestion();
+  saveQuizState();
 }
 
 function startTimer() {
@@ -1411,10 +2848,19 @@ function updateTimerUI() {
   const arc = document.getElementById('timer-arc');
   const text = document.getElementById('timer-text');
   const circ = 125.7;
+  const isDanger = timeLeft <= 10;
+  
+  // Batch DOM updates
   arc.style.strokeDashoffset = circ * (1 - timeLeft / 30);
   text.textContent = timeLeft;
-  arc.style.stroke = timeLeft <= 10 ? 'var(--wrong)' : 'var(--gold)';
-  text.style.color = timeLeft <= 10 ? 'var(--wrong)' : 'var(--gold)';
+  
+  if (isDanger) {
+    arc.style.stroke = 'var(--wrong)';
+    text.style.color = 'var(--wrong)';
+  } else {
+    arc.style.stroke = 'var(--gold)';
+    text.style.color = 'var(--gold)';
+  }
 }
 
 function renderQuestion() {
@@ -1428,6 +2874,15 @@ function renderQuestion() {
   document.getElementById('q-text').textContent = q.question;
   document.getElementById('explanation-box').classList.remove('show');
   document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('share-quiz-btn').style.display = 'inline-flex';
+  document.getElementById('note-section').style.display = 'none';
+  
+  document.getElementById('flag-btn').classList.toggle('flagged', flaggedQuestions.has(currentQ));
+  document.getElementById('flag-btn').style.display = 'inline-flex';
+  document.getElementById('review-btn').style.display = 'inline-flex';
+  document.getElementById('review-controls').style.display = 'none';
+  
+  loadNote();
 
   const labels = ['A', 'B', 'C', 'D'];
   const grid = document.getElementById('options-grid');
@@ -1444,6 +2899,8 @@ function renderQuestion() {
 }
 
 function selectAnswer(idx, btnEl) {
+  if (quizPaused) return;
+  saveNote();
   clearInterval(timerInterval);
   const q = questions[currentQ];
   const allBtns = document.querySelectorAll('.option-btn');
@@ -1469,6 +2926,7 @@ function selectAnswer(idx, btnEl) {
   document.getElementById('explanation-box').classList.add('show');
   document.getElementById('next-btn').style.display = 'inline-flex';
   document.getElementById('next-btn').textContent = currentQ < questions.length - 1 ? 'Next →' : 'See Results →';
+  saveQuizState();
 }
 
 function nextQuestion() {
@@ -1479,10 +2937,22 @@ function nextQuestion() {
 
 function showResults() {
   clearInterval(timerInterval);
+  saveNote();
+  saveToBank();
+  saveQuizToHistory();
+  
   showScreen('screen-results');
   const total = questions.length;
   const pct = Math.round((score / total) * 100);
+  
+  // Calculate and award XP
+  const baseXP = Math.round((score / total) * 200);
+  const streakBonus = Math.min(maxStreak * 10, 100);
+  const difficultyBonus = selectedDifficulty === 'hard' ? 50 : selectedDifficulty === 'medium' ? 25 : 0;
+  xpEarned = baseXP + streakBonus + difficultyBonus;
+  addXP(xpEarned);
 
+  // Display results
   document.getElementById('results-pct').textContent = pct + '%';
   document.getElementById('stat-correct').textContent = score;
   document.getElementById('stat-wrong').textContent = total - score;
@@ -1491,6 +2961,54 @@ function showResults() {
     pct >= 80 ? 'Outstanding.' : pct >= 60 ? 'Good work.' : 'Keep pushing.';
   document.getElementById('results-sub').textContent =
     `${score} / ${total} correct · Best streak: ${maxStreak}`;
+
+  // XP Display
+  document.getElementById('xp-earned').textContent = xpEarned;
+  document.getElementById('xp-total').textContent = XP_PER_LEVEL;
+  document.getElementById('xp-fill').style.width = ((userXP % XP_PER_LEVEL) / XP_PER_LEVEL) * 100 + '%';
+  document.getElementById('level-display').textContent = userLevel;
+
+  // Achievements
+  if (pct === 100) unlockAchievement('perfect');
+  if (maxStreak >= 10) unlockAchievement('streak10');
+  if (maxStreak >= 5) unlockAchievement('streak5');
+  if (userXP >= 100) unlockAchievement('first100');
+  
+  const achGrid = document.getElementById('achievements-grid');
+  achGrid.innerHTML = Array.from(userAchievements).map(id => {
+    const ach = { perfect: { icon: '🏆', name: 'Perfect' }, streak5: { icon: '🔥', name: '5x' }, streak10: { icon: '⭐', name: '10x' }, first100: { icon: '💯', name: '100XP' }, speedrun: { icon: '⚡', name: 'Fast' }, collector: { icon: '💾', name: 'Bank' } }[id];
+    return ach ? `<div class="achievement-badge unlocked"><div class="badge-icon">${ach.icon}</div><div class="badge-name">${ach.name}</div></div>` : '';
+  }).join('');
+
+  // Topic Analytics
+  const topicPerf = {};
+  questions.forEach((q, i) => {
+    if (!topicPerf[q.topic]) topicPerf[q.topic] = { correct: 0, total: 0 };
+    topicPerf[q.topic].total++;
+    if (!wrongQIndices.includes(i)) topicPerf[q.topic].correct++;
+  });
+  
+  const topicAnalytics = document.getElementById('topic-analytics');
+  topicAnalytics.innerHTML = Object.entries(topicPerf).map(([topic, data]) => {
+    const topicPct = Math.round((data.correct / data.total) * 100);
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px">
+          <span style="color:var(--text)">${topic}</span>
+          <span style="color:var(--gold)">${topicPct}%</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:var(--gold);width:${topicPct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Share Card
+  document.getElementById('share-score').textContent = pct + '%';
+  document.getElementById('share-correct').textContent = score;
+  document.getElementById('share-wrong').textContent = total - score;
+  document.getElementById('share-streak').textContent = maxStreak;
 
   if (wrongTopics.size > 0) {
     document.getElementById('weak-section').style.display = 'block';
@@ -1532,7 +3050,10 @@ function backFromFlashcards() {
 // ═══ FLASHCARDS ═══
 function startFlashcards(title) {
   currentFCIndex = 0;
+  fcDeckOriginal = [...fcDeck];
   document.getElementById('fc-title').textContent = title;
+  document.getElementById('fc-search').value = '';
+  document.getElementById('search-bar').style.display = fcDeck.length > 5 ? 'flex' : 'none';
   showScreen('screen-flashcards');
   renderFC();
   buildFCDots();
@@ -1590,13 +3111,28 @@ function updateFCDots() {
 function goHome() {
   clearInterval(timerInterval);
   questions = []; flashcards = []; fileContents = [];
+  quizPaused = false;
+  isReviewMode = false;
   document.getElementById('text-input').value = '';
   document.getElementById('focus-input').value = '';
   document.getElementById('file-list').innerHTML = '';
   document.getElementById('weak-section').style.display = 'none';
   document.getElementById('weak-fc-btn').style.display = 'none';
+  document.getElementById('share-quiz-btn').style.display = 'none';
+  document.getElementById('share-modal').classList.remove('show');
+  document.getElementById('nav-history-btn').style.display = 'inline-flex';
+  document.getElementById('nav-bank-btn').style.display = 'inline-flex';
+  clearQuizState();
   showScreen('screen-upload');
 }
+
+// Initialize page
+loadProfile();
+document.addEventListener('DOMContentLoaded', () => {
+  loadQuizFromURL();
+  document.getElementById('nav-history-btn').style.display = 'inline-flex';
+  document.getElementById('nav-bank-btn').style.display = 'inline-flex';
+});
 
 // ═══ CONFETTI ═══
 function launchConfetti() {
