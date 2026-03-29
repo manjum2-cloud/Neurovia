@@ -1,12 +1,9 @@
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import { SessionProvider } from "next-auth/react";
 
-export default NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-});
+export default function App({ Component, pageProps }) {
+  return (
+    <SessionProvider session={pageProps.session}>
+      <Component {...pageProps} />
+    </SessionProvider>
+  );
+}
