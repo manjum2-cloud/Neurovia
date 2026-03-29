@@ -1,9 +1,19 @@
-import { SessionProvider } from "next-auth/react";
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 
-export default function App({ Component, pageProps }) {
-  return (
-    <SessionProvider session={pageProps.session}>
-      <Component {...pageProps} />
-    </SessionProvider>
-  );
-}
+export default NextAuth({
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/drive.readonly",
+          prompt: "consent",
+          access_type: "offline",
+        },
+      },
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+});
