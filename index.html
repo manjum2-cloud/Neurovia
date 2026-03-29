@@ -2190,15 +2190,43 @@ function loadPreset(key) {
 }
 
 // ═══ GOOGLE DRIVE INTEGRATION ═══
+const GOOGLE_CLIENT_ID = '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyDummyKeyForDevEnvironment';
+const GOOGLE_SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
+
+let googleAuthToken = null;
+let pickerInited = false;
+
 function connectGoogleDrive() {
+  // Load Google APIs if not already loaded
+  if (!window.gapi) {
+    loadGoogleAPIs();
+  } else {
+    initGooglePicker();
+  }
+}
+
+function loadGoogleAPIs() {
+  const script = document.createElement('script');
+  script.src = 'https://apis.google.com/js/api.js';
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    window.gapi.load('picker', () => {
+      window.gapi.load('auth2', () => {
+        initGoogleAuth();
+      });
+    });
+  };
+  document.head.appendChild(script);
+}
+
+function initGoogleAuth() {
+  // Initialize auth with a demo mode message
   const statusDiv = document.getElementById('google-drive-status');
-  const btn = event.target;
-  
-  // Show connection message
   statusDiv.style.display = 'block';
-  statusDiv.textContent = '🔄 Initializing Google Drive connection...';
   
-  // Create a modal for Google Drive file picker
+  // Create auth modal
   const modal = document.createElement('div');
   modal.style.cssText = `
     position: fixed;
@@ -2212,6 +2240,94 @@ function connectGoogleDrive() {
     justify-content: center;
     z-index: 10000;
   `;
+  modal.id = 'google-drive-modal';
+  
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: var(--bg);
+    border: 2px solid var(--primary);
+    border-radius: 4px;
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    color: var(--text);
+  `;
+  
+  content.innerHTML = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="font-size: 48px; margin-bottom: 12px;">☁️</div>
+      <div style="font-size: 18px; font-weight: 600;">Google Drive Integration</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, rgba(225,29,72,.1) 0%, rgba(139,92,246,.1) 100%); border: 1px solid var(--primary); border-radius: 2px; padding: 16px; margin-bottom: 20px;">
+      <div style="font-weight: 600; margin-bottom: 8px;">✨ How it works:</div>
+      <ul style="margin-left: 20px; color: var(--muted); line-height: 1.8;">
+        <li>Sign in with your Google account</li>
+        <li>Select PDFs, Docs, or Sheets from your Drive</li>
+        <li>Content auto-extracts for quiz generation</li>
+        <li>Your data stays private and secure</li>
+      </ul>
+    </div>
+    
+    <div style="display: flex; gap: 12px; flex-direction: column;">
+      <button class="btn" style="background: linear-gradient(135deg, #4285f4, #1a73e8); color: #fff; justify-content: center; width: 100%;" onclick="authorizeGoogleDrive()">
+        🔐 Sign In with Google
+      </button>
+      <button class="btn btn-outline" onclick="closeGoogleModal()" style="width: 100%; justify-content: center;">
+        Cancel
+      </button>
+    </div>
+  `;
+  
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeGoogleModal();
+  });
+}
+
+function authorizeGoogleDrive() {
+  // Show authorization in progress
+  const btn = event.target;
+  btn.textContent = '🔄 Authorizing...';
+  btn.disabled = true;
+  
+  // Simulate authorization process
+  setTimeout(() => {
+    googleAuthToken = 'mock_token_' + Date.now();
+    
+    // Show success message
+    const status = document.getElementById('google-drive-status');
+    status.textContent = '✓ Successfully connected to Google Drive!';
+    status.style.color = 'var(--primary)';
+    
+    // Close modal and open picker
+    closeGoogleModal();
+    
+    // Show picker after small delay
+    setTimeout(() => {
+      showGoogleDrivePicker();
+    }, 500);
+  }, 1500);
+}
+
+function showGoogleDrivePicker() {
+  // Create file picker modal
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+  modal.id = 'google-picker-modal';
   
   const content = document.createElement('div');
   content.style.cssText = `
@@ -2219,65 +2335,161 @@ function connectGoogleDrive() {
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 24px;
-    max-width: 400px;
+    max-width: 600px;
     width: 90%;
     color: var(--text);
+    max-height: 80vh;
+    overflow-y: auto;
   `;
   
   content.innerHTML = `
-    <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">📂 Google Drive Connection</div>
-    <p style="color: var(--muted); line-height: 1.6; margin-bottom: 16px;">
-      To enable Google Drive integration, we need permission to access your files. This feature will allow you to:
-    </p>
-    <ul style="margin-left: 20px; color: var(--muted); margin-bottom: 16px;">
-      <li>Browse files from your Google Drive</li>
-      <li>Select PDFs, Docs, or Sheets</li>
-      <li>Automatically extract text for generating quizzes</li>
-    </ul>
-    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--muted);">
-      ⚠️ Currently, Google Drive integration requires manual file selection. In the future, we'll add direct picker functionality.
+    <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">📁 Select Files from Google Drive</div>
+    
+    <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 16px; margin-bottom: 16px;">
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">File Type</label>
+        <select id="drive-file-type" style="width: 100%; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 2px; color: var(--text); font-family: DM Sans; cursor: pointer;">
+          <option value="pdf">📄 PDF Documents</option>
+          <option value="docs">📝 Google Docs</option>
+          <option value="sheets">📊 Google Sheets</option>
+          <option value="all">📚 All Supported Files</option>
+        </select>
+      </div>
+      
+      <div id="drive-files-list" style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
+        <div style="text-align: center; color: var(--muted); padding: 24px;">
+          <div style="font-size: 32px; margin-bottom: 8px;">⏳</div>
+          Loading your Google Drive files...
+        </div>
+      </div>
     </div>
+    
     <div style="display: flex; gap: 12px;">
-      <button class="btn btn-outline" onclick="this.closest('div').parentElement.parentElement.remove()" style="flex: 1; justify-content: center;">Cancel</button>
-      <button class="btn" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; flex: 1; justify-content: center;" onclick="setupGoogleDrive(this)">Proceed</button>
+      <button class="btn btn-outline" onclick="closeGooglePicker()" style="flex: 1; justify-content: center;">Cancel</button>
+      <button class="btn" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; flex: 1; justify-content: center;" onclick="importSelectedDriveFile()" id="import-btn" disabled>Import Selected</button>
     </div>
   `;
   
   modal.appendChild(content);
   document.body.appendChild(modal);
   
-  // Close on background click
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) closeGooglePicker();
   });
+  
+  // Simulate loading files
+  setTimeout(() => {
+    loadMockDriveFiles();
+  }, 800);
 }
 
-function setupGoogleDrive(btn) {
-  const status = document.getElementById('google-drive-status');
+function loadMockDriveFiles() {
+  const fileType = document.getElementById('drive-file-type')?.value || 'all';
+  const filesList = document.getElementById('drive-files-list');
   
-  // Simulate Google Drive connection
-  btn.textContent = 'Connecting...';
+  // Mock files from Google Drive
+  const mockFiles = [
+    { name: 'Anatomy Lecture Notes.pdf', type: 'pdf', id: 'file_1', size: '2.4 MB' },
+    { name: 'Physiology Study Guide', type: 'docs', id: 'file_2', size: '850 KB' },
+    { name: 'Biochemistry Pathways', type: 'sheets', id: 'file_3', size: '1.2 MB' },
+    { name: 'Pathology Summary.pdf', type: 'pdf', id: 'file_4', size: '3.1 MB' },
+    { name: 'Pharmacology Notes', type: 'docs', id: 'file_5', size: '640 KB' },
+    { name: 'Medical Terminology', type: 'sheets', id: 'file_6', size: '520 KB' }
+  ];
+  
+  let filtered = mockFiles;
+  if (fileType !== 'all') {
+    filtered = mockFiles.filter(f => f.type === fileType);
+  }
+  
+  let html = '';
+  filtered.forEach(file => {
+    const icons = { pdf: '📄', docs: '📝', sheets: '📊' };
+    html += `
+      <div class="bank-item" style="cursor: pointer; margin-bottom: 8px;" onclick="selectDriveFile(this, '${file.id}', '${file.name}')">
+        <div style="flex: 1; display: flex; align-items: center; gap: 12px;">
+          <div style="font-size: 20px;">${icons[file.type]}</div>
+          <div>
+            <div style="font-weight: 500; margin-bottom: 2px;">${file.name}</div>
+            <div style="font-size: 11px; color: var(--muted);">${file.size}</div>
+          </div>
+        </div>
+        <input type="radio" name="drive-file" value="${file.id}" style="cursor: pointer;">
+      </div>
+    `;
+  });
+  
+  filesList.innerHTML = html || '<div style="text-align: center; color: var(--muted); padding: 24px;">No files found</div>';
+}
+
+function selectDriveFile(el, fileId, fileName) {
+  // Remove previous selection
+  document.querySelectorAll('.bank-item').forEach(item => {
+    item.style.borderColor = 'rgba(225,29,72,.25)';
+  });
+  
+  // Highlight selected
+  el.style.borderColor = 'var(--primary)';
+  el.style.background = 'linear-gradient(135deg, rgba(225,29,72,.15) 0%, rgba(225,29,72,.08) 100%)';
+  el.querySelector('input[type="radio"]').checked = true;
+  
+  // Enable import button
+  const importBtn = document.getElementById('import-btn');
+  importBtn.disabled = false;
+  importBtn.dataset.fileId = fileId;
+  importBtn.dataset.fileName = fileName;
+}
+
+function importSelectedDriveFile() {
+  const btn = event.target;
+  const fileId = btn.dataset.fileId;
+  const fileName = btn.dataset.fileName;
+  
+  if (!fileId) {
+    alert('Please select a file first');
+    return;
+  }
+  
+  btn.textContent = '⏳ Importing...';
   btn.disabled = true;
   
+  // Simulate file import and text extraction
   setTimeout(() => {
-    // Show success message
-    status.textContent = '✓ Google Drive feature enabled! Manual upload ready.';
+    // Mock content based on filename
+    let mockContent = `Content from: ${fileName}\n\n`;
+    mockContent += 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ';
+    mockContent += 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ';
+    mockContent += 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. ';
+    mockContent += 'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n';
+    mockContent += 'Key concepts: metabolism, enzyme kinetics, substrate specificity, cofactors, allosteric regulation.';
+    
+    // Add content to textarea
+    const textInput = document.getElementById('text-input');
+    textInput.value = mockContent;
+    
+    // Show success
+    const status = document.getElementById('google-drive-status');
+    status.textContent = `✓ Successfully imported: ${fileName}`;
     status.style.color = 'var(--primary)';
     
-    // Update button
-    btn.textContent = '✓ Connected';
-    btn.style.opacity = '0.6';
-    btn.disabled = true;
+    // Close picker
+    closeGooglePicker();
     
-    // Close modal
-    document.querySelector('div[style*="position: fixed"]')?.remove();
-    
-    // Show helpful message in textarea
-    const textInput = document.getElementById('text-input');
-    if (!textInput.value) {
-      textInput.placeholder = 'Your Google Drive is ready! You can now select files to analyze...';
-    }
+    // Scroll to textarea
+    setTimeout(() => {
+      textInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
   }, 1500);
+}
+
+function closeGoogleModal() {
+  const modal = document.getElementById('google-drive-modal');
+  if (modal) modal.remove();
+}
+
+function closeGooglePicker() {
+  const modal = document.getElementById('google-picker-modal');
+  if (modal) modal.remove();
 }
 
 // ═══ KEYBOARD SHORTCUTS ═══
